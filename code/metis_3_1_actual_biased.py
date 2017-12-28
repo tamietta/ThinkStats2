@@ -5,7 +5,7 @@
 '''
 Something like the class size paradox appears if you survey children and ask how many children are in their family. Families with many children are more likely to appear in your sample, and families with no chil- dren have no chance to be in the sample.
 
-Use the NSFG respondent variable NUMKDHH to construct the actual distribu- tion for the number of children under 18 in the household.
+Use the NSFG respondent variable NUMKDHH to construct the actual distribution for the number of children under 18 in the household.
 
 Now compute the biased distribution we would see if we surveyed the children and asked them how many children under 18 (including themselves) are in their household.
 Plot the actual and biased distributions, and compute their means.
@@ -51,12 +51,27 @@ def construct_bias_pmf(pmf):
 
     Returns a pandas Series of the PMF distribution of the data by the magnitude of the data value.
     '''
-    pmf = pmf * pmf.index
+    bias_pmf = pmf * pmf.index
 
-    n = pmf.sum()
-    bias_pmf = pmf / n
+    n = bias_pmf.sum()
+    bias_pmf /= n
 
     return bias_pmf
+
+def expected_value(pmf):
+    '''
+    INPUT: pmf, pandas Series of PMF distribution
+
+    OUTPUT: expected_value, float
+
+    Returns the expected value of the PMF.
+    '''
+    values = pmf.index.values
+    probs = pmf.values
+
+    expected_value = values.dot(probs)
+
+    return expected_value 
 
 
 def plot_pmfs(actual, biased, title, xlabel):
@@ -67,15 +82,20 @@ def plot_pmfs(actual, biased, title, xlabel):
 
     Plots a bar chart of the given PMF data.
     '''
+    actual_mean = expected_value(actual)
+    bias_mean = expected_value(biased)
+
     fig, ax = plt.subplots()
 
     width = 0.5
     actual_bar_loc = np.arange(actual.size) * 1.2
     bias_bar_loc = actual_bar_loc + width
+    actual_label = 'Actual (Mean = {:.3})'.format(actual_mean)
+    bias_label = 'Biased (Mean = {:.3})'.format(bias_mean)
     
 
-    ax.bar(actual_bar_loc, actual.values, width=width, label='Actual')
-    ax.bar(bias_bar_loc, biased.values, width=width, label='Bias', color='green')
+    ax.bar(actual_bar_loc, actual.values, width=width, label=actual_label)
+    ax.bar(bias_bar_loc, biased.values, width=width, label=bias_label, color='green')
     ax.set_xticks(bias_bar_loc)
     ax.set_xticklabels(actual.index)
     ax.set_title(title)
