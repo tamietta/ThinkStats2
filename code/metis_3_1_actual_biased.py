@@ -40,6 +40,9 @@ def construct_pmf(data):
     n = data.size
     pmf = data.value_counts()/n
 
+    # one-liner
+    # pmf = data.value_counts(normalize=True) # normalizes to relative frequency
+
     return pmf
 
 
