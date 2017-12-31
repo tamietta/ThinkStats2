@@ -103,7 +103,7 @@ def se_experiment(samples_sizes, lam=2, n_trials=1000):
 def plot_sampling_dist(data, bins, title, xlabel, ylabel):
     fig, ax = plt.subplots()
 
-    ax.hist(data, bins=bins)
+    ax.hist(data, bins=bins, normed=True)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
@@ -131,7 +131,7 @@ if __name__ == '__main__':
                        title='Sampling Distribution of Estimates for '
                               r"$ L = \frac{1}{\bar{x}}$", 
                        xlabel='Estimate for L',
-                       ylabel='Frequency')
+                       ylabel='Density')
 
     cdf_lambdas.plot_cdf(title='CDF for Sampling Distribution of Estimates for L',
                      xlabel='Estimates for L')
