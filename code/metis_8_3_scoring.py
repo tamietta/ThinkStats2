@@ -22,6 +22,11 @@ from metis_8_2_sampling_dist import CDF, plot_sampling_dist
 sns.set_style('whitegrid', rc={'grid.linestyle': ':'})
 
 def simulate_game(lam):
+    '''
+    Simulate one game to estimate number of goals scored.
+    Time between goals is drawn from an exponential distribution with rate
+    parameter, lambda.
+    '''
     goals = 0
     num_games = 0
 
@@ -35,6 +40,10 @@ def simulate_game(lam):
 
 
 def simulate_multiple_games(lam, n_games):
+    '''
+    Create a sampling distribution for estimates of rate paramter,
+    lambda = number of goals scored per game
+    '''
     lambdas = np.zeros(n_games)
     
     for i in range(n_games):
@@ -44,6 +53,10 @@ def simulate_multiple_games(lam, n_games):
 
 
 def mean_error(estimates, parameter):
+    '''
+    Calculates the mean error between parameter estimates and the actual
+    parameter.
+    '''
     estimates = np.array(estimates)
     errors = estimates - parameter
     mean_err = errors.mean()
@@ -52,6 +65,9 @@ def mean_error(estimates, parameter):
 
 
 def mse(estimates, parameter):
+    '''
+    Calculates the mean squared error.
+    '''
     estimates = np.array(estimates)
     errors = estimates - parameter
     mse = errors.dot(errors) / estimates.size
@@ -60,24 +76,35 @@ def mse(estimates, parameter):
 
 
 if __name__ == '__main__':
+
+    # set rate parameter, lambda, and number of games to simulate
     lam = 4
     n_games = 10000
 
+    # number of goals from one game simulation
     num_goals = simulate_game(lam)
 
+    # create sampling distribution
     lambdas = simulate_multiple_games(lam, n_games)
+
+    # calcuate mean error and SE
     mean_err = mean_error(lambdas, lam)
     root_mse = np.sqrt(mse(lambdas, lam))
 
+    # create CDF object from sampling distribution
     cdf = CDF(lambdas)
+
+    # plot CDF graph
     cdf.plot_cdf(title='CDF of Lambda Estimates from Simulation',
                  xlabel='Lambda Estimates')
 
+    # plot normalised histogram of sampling distribution
     plot_sampling_dist(lambdas, bins=15,
                        title='Sampling Distribution of Lambda Estimates',
                        xlabel='Lambda Estimates',
                        ylabel='Frequency')
 
+    # calculation two-tailed 90% confidence interval
     ci = cdf.ci(5, 95)
 
     print('Actual lambda: {} goals/game'.format(lam))

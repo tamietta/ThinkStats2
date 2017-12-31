@@ -18,10 +18,14 @@ from itertools import chain
 
 sns.set_style('whitegrid', rc={'grid.linestyle': ':'}) 
 
-# Uncomment for Jupyter Notebook
+# Uncomment for Jupyter Notebook.
 # %matplotlib inline
 
 class CDF(object):
+    '''
+    Converts and stores data in CDF-relevant format of sorted values, frequency,
+    cumulative frequency and cumulative probability.
+    '''
     def __init__(self, data):
         self.cdf = self._create_cdf(data)
 
@@ -73,6 +77,10 @@ class CDF(object):
 
 
 def estimate_lambda(lam=2, n_samples=10, n_trials=1000):
+    '''
+    Creates sampling distribution data for estimates of exponential
+    distribution rate parameter, lambda.
+    '''
     lambdas = np.zeros(n_trials)
 
     for i in range(n_trials):
@@ -82,15 +90,22 @@ def estimate_lambda(lam=2, n_samples=10, n_trials=1000):
     return lambdas
 
 
-def mse(data, parameter):
-    data = np.array(data)
-    data -= parameter
-    mse = data.dot(data) / data.size
+def mse(estimates, parameter):
+    '''
+    Calculates mean squared error
+    '''
+    estimates = np.array(estimates)
+    errors = estimates- parameter
+    mse = errors.dot(errors) / errors.size
 
     return mse
 
 
 def se_experiment(samples_sizes, lam=2, n_trials=1000):
+    '''
+    Returns the standard error of sampling distributions of different
+    sample sizes.
+    '''
     data = {}
 
     for n in samples_sizes:
@@ -101,6 +116,9 @@ def se_experiment(samples_sizes, lam=2, n_trials=1000):
 
 
 def plot_sampling_dist(data, bins, title, xlabel, ylabel):
+    '''
+    Plots a normalised histogram from given data.
+    '''
     fig, ax = plt.subplots()
 
     ax.hist(data, bins=bins, normed=True)
@@ -110,6 +128,9 @@ def plot_sampling_dist(data, bins, title, xlabel, ylabel):
 
 
 def plot(x, y, label, title, xlabel, ylabel):
+    '''
+    Plots a line graph of the relation between x and y.
+    '''
     fig, ax = plt.subplots()
 
     ax.plot(x, y, label=label)
@@ -122,19 +143,23 @@ def plot(x, y, label, title, xlabel, ylabel):
 
 if __name__ == '__main__':
     
-    # Estimates for L with lambda = 2, n = 10, trials = 1000
+    # create sampling distribution for lambda estimates
+    # lambda=2, n_samples=10, n_trials=1000
+    lambdas = estimate_lambda
 
-    lambdas = estimate_lambda()
+    # create CDF object from sampling distribution data
     cdf_lambdas = CDF(lambdas)
 
+    # plot normalised histogram.
     plot_sampling_dist(lambdas, bins=100,
                        title='Sampling Distribution of Estimates for '
                               r"$ L = \frac{1}{\bar{x}}$", 
                        xlabel='Estimate for L',
                        ylabel='Density')
 
+    # plot CDF graph
     cdf_lambdas.plot_cdf(title='CDF for Sampling Distribution of Estimates for L',
-                     xlabel='Estimates for L')
+                         xlabel='Estimates for L')
 
     se = np.sqrt(mse(lambdas, 2))
     print('Standard error of the estimate for L: {:.3f}'.format(se))
@@ -142,12 +167,13 @@ if __name__ == '__main__':
     ci = cdf_lambdas.ci(5, 95)
     print('90% confidence interval for the estimate for L$: [{0[0]:.3f}, {0[1]:.3f}]'.format(ci))
 
-    
-    # Trends for SE with different sample sizes, lambda = 2, trials = 1000
-
+    # set range of sample sizes
     sample_sizes = chain(range(100, 1001, 100), range(1000, 5001, 1000), [10000])
+
+    # run simulation trials
     data = se_experiment(sample_sizes)
 
+    # Plot SE for different sample sizes
     plot(x=list(data.keys()), y=list(data.values()), 
          label='Standard Error',
          title='SE of Sampling Distributions of Different Sample Sizes', 
