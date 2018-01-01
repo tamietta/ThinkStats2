@@ -20,6 +20,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from hinc import ReadData
+from metis_8_2_sampling_dist import CDF, plot_line
 
 def income_data():
     '''
@@ -39,7 +40,7 @@ def income_data():
 
     # create income lower bound column by shifting upper bound values by 1 index position
     df.loc[:, 'income_lower'] = df.income_upper.shift(1)
-    df.loc[0, 'income_lower'] = 0
+    df.loc[0, 'income_lower'] = 0 
     
     # set upper-most bound for income
     last_row = df.index[-1]
@@ -71,41 +72,27 @@ def interpolate_data(income_data):
     income and density range.
     '''
     incomes = []
-    densities = []
 
     # iterate over income groups
     n_rows = income_data.shape[0]
     for i in range(n_rows):
+        # get number of respondents for income group
+        freq = income_data.freq[i]
 
-        # get number of respondents in group
-        size = income_data.freq.iloc[i]
+        # evenly divide income width
+        step = income_data.width[i]/income_data.freq[i]
         
-        # get lower and upper bounds for income group
+        # get lower bound for income group
         lower = income_data.income_lower.iloc[i]
-        upper = income_data.income_upper.iloc[i]
         
         # evenly distribute incomes for each respondent across the group
-        incomes.append(np.linspace(lower, upper, size))
-        
-        # get bounds for density of group
-        if i == 0:
-            prev = 0 
-            curr = income_data.density[i]
-        else:
-            # prev determined by density of previous group
-            prev = income_data.density[i-1]
+        interpolated = lower + (step * np.arange(1, freq+1))
+        incomes.append(interpolated)
 
-            # curr determined by density of current group
-            curr = income_data.density[i]
-        
-        # evenly distribute densities across group density    
-        densities.append(np.linspace(prev, curr, size))
+    # concatenating interpolated-data arrays into one array
+    incomes = np.concatenate(incomes)
 
-    # create DataFrame by concatenating arrays of each group's interpolated data
-    df_income = pd.DataFrame({'income': np.concatenate(incomes), 
-                              'density': np.concatenate(densities)})
-
-    return df_income
+    return incomes
 
 
 def moment_about_zero(data, k):
@@ -149,8 +136,62 @@ def standardised_moment(data, k):
     kth_moment = moment_about_mean(data, k)
     sd = data.std(ddof=0) # biased standard deviation
 
-    std_moment - kth_moment / sd**k
+    std_moment = kth_moment / sd**k
 
     return std_moment
 
+
+def sample_skewness(data):
+    '''
+    Returns the sample skewness (g1) defined as the 3rd standardised moment.
+    '''
+    g1 = standardised_moment(data, 3)    
+    
+    return g1
+
+
+def pearson_median_skewness(data, mean=None, median=None):
+    '''
+    Returns the Pearson median skewness (gp) defines as 3*(median)
+    '''
+    cdf = CDF(data)
+   
+    median = cdf.percentile(50)
+    mean = moment_about_zero(data, 1)
+    std = np.sqrt(moment_about_mean(data, 2))
+    
+    gp = 3*(mean - median)/std
+
+    return gp
+
+
+if __name__ == '__main__':
+    df = income_data()
+    incomes = interpolate_data(df)
+    cdf_incomes = CDF(incomes)
+
+
+    plot_line(df.income_upper, df.density, 
+              label=None, 
+              title='Approximaated PDF of U.S. Household Incomes', 
+              xlabel='Income ($)', 
+              ylabel='Probability Density')
+
+    plot_line(cdf_incomes.get_values(), cdf_incomes.get_probs(), 
+              label=None,
+              title='Approximated CDF of U.S. Household Incomes', 
+              xlabel='Income ($)', 
+              ylabel='Cumulative Probability')
+    
+    mean = incomes.mean()
+    median = cdf_incomes.percentile(50)
+    sample_skew = sample_skewness(incomes)
+    pearson_skew = pearson_median_skewness(incomes)
+    mean_rank = cdf_incomes.rank(mean)
+
+    print('Mean income: {}'.format(mean))
+    print('Median income: {}'.format(median))
+    print('Sample skewness: {}'.format(sample_skew))
+    print('Pearson\'s median skewness: {}'.format(pearson_skew))
+    print('Percentage of incomes below the mean: {}'.format(mean_rank))
 
