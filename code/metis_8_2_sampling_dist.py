@@ -25,6 +25,8 @@ class CDF(object):
     '''
     Converts and stores data in CDF-relevant format of sorted values, frequency,
     cumulative frequency and cumulative probability.
+
+    The CDF class approximates a continuous CDF from discrete data.
     '''
     def __init__(self, data):
         self.cdf = self._create_cdf(data)
@@ -44,13 +46,47 @@ class CDF(object):
         return self.cdf.index.values
 
     def get_probs(self):
-        return self.cdf.prob.values
+        return self.cdf.prob
+
+    def mean(self):
+        vals = self.cdf.index.values
+        counts = self.cdf.freq.values
+        size = self.cdf.cum_freq.iloc[-1]
+
+        return vals.dot(counts) / size
 
     def percentile(self, rank):
+        '''
+        Algorithm *interpolates* the percentile value of the given rank.
+        '''
         rank /= 100
         index = bisect.bisect_left(self.cdf.prob.values, rank)
 
-        return self.cdf.index[index]
+        lower_rank = self.cdf.prob.iloc[index]
+        upper_rank = self.cdf.prob.iloc[index+1]
+
+        lower_val = self.cdf.index[index]
+        upper_val = self.cdf.index[index+1]
+
+        prop = (rank - lower_rank)/(upper_rank - lower_rank)
+
+        return lower_val + (prop * (upper_val - lower_val))
+
+    def rank(self, value):
+        '''
+        Algorithm *interpolates* the percentile rank of the given value.
+        '''
+        index = bisect.bisect_left(self.cdf.index.values, value)
+
+        lower_val = self.cdf.index[index]
+        upper_val = self.cdf.index[index+1]
+
+        lower_rank = self.cdf.prob.iloc[index]
+        upper_rank = self.cdf.prob.iloc[index+1]
+
+        prop = (value - lower_val)/(upper_val - lower_val)
+
+        return lower_rank + (prop * (upper_rank - lower_rank))
 
     def ci(self, lower_rank, upper_rank):
         ci_lower = self.percentile(lower_rank)
@@ -127,7 +163,7 @@ def plot_sampling_dist(data, bins, title, xlabel, ylabel):
     ax.set_title(title)
 
 
-def plot(x, y, label, title, xlabel, ylabel):
+def plot_line(x, y, title, xlabel, ylabel, label=None):
     '''
     Plots a line graph of the relation between x and y.
     '''
@@ -137,7 +173,9 @@ def plot(x, y, label, title, xlabel, ylabel):
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
-    ax.legend()
+
+    if label:
+        ax.legend()
 
 
 
@@ -174,11 +212,11 @@ if __name__ == '__main__':
     data = se_experiment(sample_sizes)
 
     # Plot SE for different sample sizes
-    plot(x=list(data.keys()), y=list(data.values()), 
-         label='Standard Error',
-         title='SE of Sampling Distributions of Different Sample Sizes', 
-         xlabel='Sample Size',
-         ylabel='Standard Error')
+    plot_line(x=list(data.keys()), y=list(data.values()), 
+              label='Standard Error',
+              title='SE of Sampling Distributions of Different Sample Sizes', 
+              xlabel='Sample Size',
+              ylabel='Standard Error')
 
     plt.show()
 
